@@ -1,3 +1,61 @@
+type Movie {
+    title: String!
+    rating: Int!
+    director: String!
+    id: String!
+}
+
+type QueryMutationInformation {
+    name: String!
+    description: String
+    type: String!
+    arguments: [ArgumentInformation]!
+}
+
+type ArgumentInformation {
+    name: String!
+    type: String!
+}
+
+type SuccessMessage {
+    message: String!
+}
+
 type Query {
-    movie_with_id(_id: String!): Movie
+    """
+    Return all the Mutation/Query available
+    """
+    help: [QueryMutationInformation]
+
+    """
+    Return all the movies
+    """
+    list_movie: [Movie]
+
+    """
+    Return the movie by id
+    """
+    movie_by_id(id: String!): Movie
+
+    """
+    Return the movie by title
+    """
+    movie_by_title(title: String!): Movie
+}
+
+type Mutation {
+    """
+    Add movie to the database
+    """
+    add_movie(id: String!, title: String!, director: String!, rating: Int!): Movie
+
+    """
+    Delete movie from the database
+    """
+    delete_movie(id: String!):SuccessMessage
+
+    """
+    Update movie rating in database
+    """
+    update_movie_rating(id: String!, rating: Int!):SuccessMessage
 }
