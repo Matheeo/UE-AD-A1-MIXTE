@@ -1,6 +1,6 @@
 type Movie {
     title: String!
-    rating: Int!
+    rating: Float!
     director: String!
     id: String!
 }
