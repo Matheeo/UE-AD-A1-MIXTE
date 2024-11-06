@@ -1,19 +1,26 @@
+import os
+import sys
 from datetime import datetime
-from operator import contains
-from urllib.request import localhost
 
+import grpc
 from flask import Flask, render_template, request, jsonify, make_response
 import requests
 import json
-from werkzeug.exceptions import NotFound
+
+from google.protobuf.json_format import MessageToDict
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../booking'))
+from booking import booking_pb2, booking_pb2_grpc
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../showtime'))
+from showtime import showtime_pb2_grpc, showtime_pb2
 
 app = Flask(__name__)
 
 PORT = 3203
 HOST = '0.0.0.0'
 
-booking_ws = "http://localhost:3201"
-movie_ws = "http://localhost:3001/grapql"
+movie_ws = "http://localhost:3001/graphql"
 
 query_get_movie_by_id = """
 query getMovieById($id: String!) {
@@ -26,15 +33,13 @@ query getMovieById($id: String!) {
 }
 """
 
+booking_channel = grpc.insecure_channel('localhost:3003')
+booking_stub = booking_pb2_grpc.BookingStub(booking_channel)
+
 # Load the users from the json file
 def load_users():
    with open('{}/data/users.json'.format("."), 'r') as jsf:
       return json.load(jsf)["users"]
-
-# Save the users to the json file
-def save_users(users_list):
-   with open('{}/data/users.json'.format("."), 'w') as jsf:
-      json.dump({"movies": users_list}, jsf, indent=4)
 
 def user_exist(userid):
    exist = False
@@ -42,8 +47,6 @@ def user_exist(userid):
       if user["id"] == userid:
          exist = True
    return exist
-
-users = load_users()
 
 @app.route("/", methods=['GET'])
 def home():
@@ -60,19 +63,24 @@ def get_user_watchedcount(userid):
    if user_exist(userid):
 
       # request to get the user bookings
-      response = requests.get(booking_ws + "/bookings/" + userid)
+      booking_request = booking_pb2.UserId(userid=userid)
+      booking_response = booking_stub.GetBookingByUser(booking_request, timeout=5.0)
 
+      print(booking_response.userid)
+      for i in booking_response.dates:
+         print(i.date)
+         for y in i.movies:
+             print(y)
       # if the request has no problems and the dates list exist in json response
-      if response.status_code == 200 and response.json()["dates"]:
+      if booking_response.userid and booking_response.dates:
 
          # iterate over all the booking dates
-         for date in response.json()["dates"]:
+         for date in booking_response.dates:
 
             # if the date is before the today date
-            if date["date"] < today:
-
+            if date.date < today:
                # we iterate over the movies of the date and add 1 each times
-               for movie in date["movies"]:
+               for movie in date.movies:
                   counter += 1
 
       return make_response(jsonify({"watched-count": counter}),200)
@@ -86,18 +94,21 @@ def get_booked_movie_titles(userid):
 
    # check to be sure the user is in the database
    if user_exist(userid):
-
+      print(userid)
       # request to get the user bookings
-      response_booking = requests.get(booking_ws + "/bookings/" + userid)
+      booking_request = booking_pb2.UserId(userid=userid)
+      booking_response = booking_stub.GetBookingByUser(booking_request, timeout=5.0)
+      response_dict = MessageToDict(booking_response)
 
       # if the request has no problems and the dates list exist in json response
-      if response_booking.status_code == 200 and response_booking.json()["dates"]:
+      print(response_dict)
+      if booking_response.userid and booking_response.dates:
 
          # iterate over all the booking dates
-         for date in response_booking.json()["dates"]:
+         for date in booking_response.dates:
 
             # we iterate over the movies of the date and add 1 each times
-            for movie in date["movies"]:
+            for movie in date.movies:
 
                # VERIFIER LE FONCTIONNEMENT
                # get the movie object
@@ -108,16 +119,18 @@ def get_booked_movie_titles(userid):
                )
 
                # check if we get response
-               if response_movie.status_code == 200 and response_movie.json()["title"]:
+               if response_movie.status_code == 200 and response_movie.json()["data"]["movie_by_id"]:
 
                   # check if the title is not already in the movie list
-                  if not response_movie.json()["title"] in titles:
+                  if not response_movie.json()["data"]["movie_by_id"]["title"] in titles:
 
                      # add title to the list
-                     titles.append(response_movie.json()["title"])
+                     titles.append(response_movie.json()["data"]["movie_by_id"]["title"])
 
          return make_response(jsonify({"titles": titles}), 200)
    return make_response("User ID not found")
+
+users = load_users()
 
 if __name__ == "__main__":
    print("Server running in port %s"%(PORT))

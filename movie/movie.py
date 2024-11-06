@@ -33,12 +33,16 @@ def home():
 def graphql_server():
     data = request.get_json()
 
+    print(data)
+
     success, result = graphql_sync(schema, data, context_value=request)
 
     if success:
         status_code = 200
     else:
         status_code = 400
+
+    print(result)
 
     return jsonify(result), status_code
 

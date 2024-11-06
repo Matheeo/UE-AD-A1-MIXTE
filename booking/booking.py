@@ -53,6 +53,8 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
         for item in self.db:
             # if the userid is the same as the one in the url
             if item["userid"] == userid:
+                print("trouver")
+                print(item)
                 bookings_dates = [
                     booking_pb2.Informations(
                         date=info['date'],
@@ -60,11 +62,13 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
                     ) for info in item['dates']
                 ]
 
+                print(item['dates'])
                 # Create proto data object
                 return booking_pb2.BookingData(
                     userid=item['userid'],
                     dates=bookings_dates
                 )
+        print("oups")
 
     def save_bookings(self, bookings):
         try:
@@ -106,7 +110,7 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
 
     def GetBookingByUser(self, request, context):
 
-        if not request or request.userid == '':
+        if not request or request.userid == "":
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("The parameter userid must be defined")
             return Empty()
