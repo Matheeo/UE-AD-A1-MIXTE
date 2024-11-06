@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+service Booking {
+  rpc Home (EmptyRequestBooking) returns (HTMLBooking);
+  rpc GetBookings (EmptyRequestBooking) returns (BookingsData);
+  rpc GetBookingByUser (UserId) returns (BookingData);
+  rpc AddBookingByUser (AddRequest) returns (BookingData);
+}
+
+message EmptyRequestBooking {}
+
+message HTMLBooking {
+  string html_content = 1;
+}
+
+message BookingData {
+  string userid = 1;
+  repeated Informations dates = 2;
+}
+
+message BookingsData {
+  repeated BookingData bookings = 1;
+}
+
+message Informations {
+  string date = 1;
+  repeated string movies = 2;
+}
+
+message UserId {
+  string userid = 1;
+}
+
+message AddRequest {
+    string userid = 1;
+    string date = 2;
+    string movieid = 3;
+}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+service Showtime {
+  rpc Home (EmptyRequestShowtime) returns (HTMLShowtime);
+  rpc GetTimes (EmptyRequestShowtime) returns (Times);
+  rpc GetTimeByDate (Date) returns (Time);
+}
+
+message EmptyRequestShowtime {}
+
+message Date {
+  string date = 1;
+}
+
+message Times {
+  repeated Time times = 1;
+}
+
+message Time {
+  string date = 1;
+  repeated string movies = 2;
+}
+
+message HTMLShowtime {
+  string html_content = 1;
+}
