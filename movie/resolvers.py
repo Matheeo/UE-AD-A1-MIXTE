@@ -1,31 +1,43 @@
-# Load the movies from the json file
 import json
 
 from graphql import GraphQLError
 
 
 def load_movies():
+    """Load the movies from the json file"""
+
     with open('{}/data/movies.json'.format("."), 'r') as jsf:
         return json.load(jsf)["movies"]
 
-# Save the movies to the json file
+
 def save_movies(movies_list):
+    """Save the movies to the json file"""
+
     with open('{}/data/movies.json'.format("."), 'w') as jsf:
         json.dump({"movies": movies_list}, jsf, indent=4)
 
+
 def movie_exist(movieid):
+    """Check if the movie already exists"""
+
     exist = False
-    for movie in movies:
+    for movie in movieid:
         if movie["id"] == movieid:
             exist = True
     return exist
 
+
 movies = load_movies()
 
+
 def resolve_list_movie(_, info):
+    """Return all the movies"""
+
     return movies
 
+
 def resolve_movie_by_id(_, info, id):
+    """Return the movie by id"""
 
     for movie in movies:
         if movie["id"] == id:
@@ -33,7 +45,9 @@ def resolve_movie_by_id(_, info, id):
 
     return None
 
+
 def resolve_movie_by_title(_, info, title):
+    """Return the movie by title"""
 
     for movie in movies:
         if movie["title"] == title:
@@ -41,7 +55,9 @@ def resolve_movie_by_title(_, info, title):
 
     return None
 
+
 def resolve_add_movie(_, info, id, title, rating, director):
+    """Add a movie to the list"""
 
     # check if the movie already exists
     exist = movie_exist(id)
@@ -58,11 +74,13 @@ def resolve_add_movie(_, info, id, title, rating, director):
             "director": director,
             "rating": rating
         }
-        movies.append(new_movie) # add the movie to the list
-        save_movies(movies) # save the movies to the json file
+        movies.append(new_movie)  # add the movie to the list
+        save_movies(movies)  # save the movies to the json file
         return new_movie
 
+
 def resolve_delete_movie(_, info, id):
+    """Delete a movie from the list"""
 
     global movies
 
@@ -81,7 +99,9 @@ def resolve_delete_movie(_, info, id):
 
     return {"message": "Movie deleted with succes"}
 
+
 def resolve_update_movie_rating(_, info, id, rating):
+    """Update the movie rating"""
 
     # Demander a la prof si on peux renvoyer une autre erreur pour note invalide
     if (rating < 0 or rating > 10) or not isinstance(rating, int):
@@ -104,9 +124,8 @@ def resolve_update_movie_rating(_, info, id, rating):
     return {"message": "Rate updated with succes!"}
 
 
-
-
 def resolve_movies_by_minimal_rating(rating):
+    """Return all the movie by minimal rating"""
 
     movies_list = []
 
@@ -147,7 +166,10 @@ def resolve_movies_by_director(director):
 
     return movies_list
 
+
 def resolve_help(_, info):
+    """Return the help message"""
+
     # Get the schema informations
     schema = info.schema
     query_type = schema.get_type("Query")
