@@ -7,7 +7,6 @@ import showtime_pb2_grpc
 import json
 
 
-
 class ShowtimeServicer(showtime_pb2_grpc.Showtime):
 
     def __init__(self):
@@ -15,16 +14,19 @@ class ShowtimeServicer(showtime_pb2_grpc.Showtime):
             self.db = json.load(jsf)["schedule"]
 
     def Home(self, request, context):
+        """ Home page """
+
         return showtime_pb2.HTMLPage(
             html_content="<h1 style='color:blue'>Welcome to the Showtime service!</h1>"
         )
 
     def GetTimes(self, request, context):
+        """ Get all the times """
+
         times_list = []
 
         # Iterate over all object in database
         for item in self.db:
-
             # Create proto data object
             movie_times = showtime_pb2.Time(
                 date=item['date'],
@@ -38,6 +40,7 @@ class ShowtimeServicer(showtime_pb2_grpc.Showtime):
         return showtime_pb2.Times(times=times_list)
 
     def GetTimeByDate(self, request, context):
+        """ Get the time for a specific date """
 
         if not request or request.date == "":
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
@@ -55,7 +58,6 @@ class ShowtimeServicer(showtime_pb2_grpc.Showtime):
 
             # If the curent date is the same as in request
             if item["date"] == request.date:
-
                 # Create and return proto data object
                 return showtime_pb2.Time(
                     date=item['date'],
@@ -74,6 +76,7 @@ def serve():
     server.add_insecure_port('[::]:3002')
     server.start()
     server.wait_for_termination()
+
 
 if __name__ == '__main__':
     serve()
