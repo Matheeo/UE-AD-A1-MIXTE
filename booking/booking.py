@@ -3,14 +3,13 @@ import sys
 from queue import Empty
 import grpc
 from concurrent import futures
-from flask import request
 from google.protobuf.json_format import MessageToDict
 
 import booking_pb2
 import booking_pb2_grpc
 import json
-import requests
 
+# Add the path to the showtime module, to be able to import the proto generated code
 sys.path.append(os.path.join(os.path.dirname(__file__), '../showtime'))
 from showtime import showtime_pb2, showtime_pb2_grpc
 
@@ -21,26 +20,31 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
         with open('{}/data/bookings.json'.format("."), "r") as jsf:
             self.db = json.load(jsf)["bookings"]
 
-        self.showtime_channel = grpc.insecure_channel('localhost:3002')  # Port du serveur ShowtimeService
+        # Create a channel to the showtime service
+        self.showtime_channel = grpc.insecure_channel('localhost:3002')
+
+        # Create a stub to the showtime service
         self.showtime_stub = showtime_pb2_grpc.ShowtimeStub(self.showtime_channel)
 
     def __del__(self):
+
+        # Close the channel to the showtime service
         self.showtime_channel.close()
 
-    # check if the movie is available a the good date in showtime
     def movie_available(self, date, movieid):
+        """ Check if the movie is available on the date """
 
-
+        # Create the proto request object
         showtime_request = showtime_pb2.Date(date=date)
 
-
+        # Call the showtime service with the request object
         showtime_response = self.showtime_stub.GetTimeByDate(showtime_request)
-        response_dict = MessageToDict(showtime_response)
 
-        if response_dict["date"]:
+        # If the date is found
+        if showtime_response.date:
 
             # iterate over all the movies
-            for movie in response_dict["movies"]:
+            for movie in showtime_response.movies:
 
                 # if the movieid is in the movies liest of the date
                 if movie == movieid:
@@ -49,12 +53,14 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
         return False
 
     def proto_object_by_user(self, userid):
+        """ Create a proto object of the booking for a specific user """
 
+        # iterate over the bookings
         for item in self.db:
-            # if the userid is the same as the one in the url
+
+            # if the user id is the same as the one in the request
             if item["userid"] == userid:
-                print("trouver")
-                print(item)
+                # iterate over the dates and create the proto object
                 bookings_dates = [
                     booking_pb2.Informations(
                         date=info['date'],
@@ -62,33 +68,32 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
                     ) for info in item['dates']
                 ]
 
-                print(item['dates'])
-                # Create proto data object
+                # Create proto data object for booking of the user
                 return booking_pb2.BookingData(
                     userid=item['userid'],
                     dates=bookings_dates
                 )
-        print("oups")
 
     def save_bookings(self, bookings):
-        try:
-            with open('data/bookings.json', 'w') as jsf:
-                json.dump({"bookings": bookings}, jsf, indent=4)
-            print("Les réservations ont été sauvegardées avec succès.")
-        except IOError as e:
-            print("Erreur lors de la sauvegarde des réservations")
+        """ Save the bookings in the json file """
+
+        with open('data/bookings.json', 'w') as jsf:
+            json.dump({"bookings": bookings}, jsf, indent=4)
 
     def Home(self, request, context):
+        """ Home page """
+
         return booking_pb2.HTMLBooking(
             html_content="<h1 style='color:blue'>Welcome to the Booking service!</h1>"
         )
 
     def GetBookings(self, request, context):
+        """ Get all the bookings """
+
         bookings_list = []
 
         # Iterate over all object in database
         for item in self.db:
-
             bookings_dates = [
                 booking_pb2.Informations(
                     date=info['date'],
@@ -109,24 +114,30 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
         return booking_pb2.BookingsData(bookings=bookings_list)
 
     def GetBookingByUser(self, request, context):
+        """ Get the booking for a specific user """
 
+        # If no userid, setup information error for invalid argument
         if not request or request.userid == "":
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("The parameter userid must be defined")
             return Empty()
 
-        # iterate over the bookings
+        # Iterate over all object in database
         for item in self.db:
+
+            # when the user id is found, return the proto object
             if item["userid"] == request.userid:
                 return self.proto_object_by_user(request.userid)
 
-        # If userid note found, setup error information
+        # If userid note found, setup error information for not found
         context.set_details('No data found for the specified userid.')
         context.set_code(grpc.StatusCode.NOT_FOUND)
         return Empty()
 
     def AddBookingByUser(self, request, context):
+        """ Add a booking for a specific user """
 
+        # If no userid, setup information error for invalid argument
         if not request or request.userid == "" or request.date == "" or request.movieid == "":
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details("The parameters userid, date, movieid must be defined")
@@ -197,11 +208,10 @@ class BookingServicer(booking_pb2_grpc.BookingServicer):
                             context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
                             return Empty()
 
+            # return error if the movie is already in the date
             context.set_details("An existing item already exists")
             context.set_code(grpc.StatusCode.ALREADY_EXISTS)
             return Empty()
-
-
 
 
 def serve():
