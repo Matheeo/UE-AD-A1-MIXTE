@@ -61,7 +61,7 @@ type Mutation {
     """
     Add movie to the database
     """
-    add_movie(id: String!, title: String!, director: String!, rating: Int!): Movie
+    add_movie(id: String!, title: String!, director: String!, rating: Float!): Movie
 
     """
     Delete movie from the database

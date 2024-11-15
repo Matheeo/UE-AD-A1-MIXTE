@@ -104,7 +104,7 @@ def resolve_update_movie_rating(_, info, id, rating):
     """Update the movie rating"""
 
     # Demander a la prof si on peux renvoyer une autre erreur pour note invalide
-    if (rating < 0 or rating > 10) or not isinstance(rating, int):
+    if rating < 0 or rating > 10:
         return GraphQLError("Rate invalid")
 
     # check if the movie already exists
@@ -129,11 +129,8 @@ def resolve_movies_by_minimal_rating(rating):
 
     movies_list = []
 
-    # convert the rate to int, if that raise an Exception
-    try:
-        min_rating = rating
-    except (TypeError, ValueError):
-        return GraphQLError("Rate invalid")
+    # get the min_rating param in url
+    min_rating = rating
 
     # if the rating is valid
     if min_rating >= 0 or min_rating <= 10:
