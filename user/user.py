@@ -6,6 +6,7 @@ from datetime import datetime
 import grpc
 import requests
 from flask import Flask, jsonify, make_response
+from flask_cors import CORS
 from google.protobuf.json_format import MessageToDict
 
 # Add the path to the booking proto file
@@ -13,6 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../booking'))
 from booking import booking_pb2, booking_pb2_grpc
 
 app = Flask(__name__)
+CORS(app)
 
 PORT = 3203
 HOST = '0.0.0.0'
@@ -67,6 +69,12 @@ def home():
 
     return "<h1 style='color:blue'>Welcome to the User service!</h1>"
 
+@app.route("/users", methods=['GET'])
+def get_users():
+    """Return all the users in the database"""
+
+    return make_response(jsonify(users), 200)
+
 
 @app.route("/users/<string:userid>/movies/watched-count", methods=["GET"])
 def get_user_watchedcount(userid):
@@ -110,10 +118,8 @@ def get_booked_movie_titles(userid):
         # request to get the user bookings
         booking_request = booking_pb2.UserId(userid=userid)
         booking_response = booking_stub.GetBookingByUser(booking_request)
-        response_dict = MessageToDict(booking_response)
 
         # if the request has no problems and the dates list exist in json response
-        print(response_dict)
         if booking_response.userid and booking_response.dates:
 
             # iterate over all the booking dates
@@ -134,8 +140,9 @@ def get_booked_movie_titles(userid):
 
                         # check if the title is not already in the movie list
                         if not response_movie.json()["data"]["movie_by_id"]["title"] in titles:
+
                             # add title to the list
-                            titles.append(response_movie.json()["data"]["movie_by_id"]["title"])
+                            titles.append({"title":response_movie.json()["data"]["movie_by_id"]["title"], "id": response_movie.json()["data"]["movie_by_id"]["id"]})
 
             return make_response(jsonify({"titles": titles}), 200)
     return make_response("User ID not found")
