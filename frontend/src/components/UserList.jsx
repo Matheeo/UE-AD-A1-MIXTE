@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import InfoIcon from '@mui/icons-material/Info';
+import InfoIcon from "@mui/icons-material/Info";
 import {
     Box,
     FormControl,
@@ -17,35 +17,31 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Button, Select, IconButton,
+    Button,
+    Select,
+    IconButton,
+    CircularProgress,
 } from "@mui/material";
 import { useSpring, animated } from "@react-spring/web";
 
 const UserList = () => {
+    const [userData, setUserData] = useState([]);
+    const [userid, setUserid] = useState("");
+    const [userNbMovies, setUserNbMovies] = useState(0);
+    const [userMoviesTitlesBooked, setUserMoviesTitlesBooked] = useState([]);
+    const [requestMoviesTitleIsDone, setRequestMoviesTitleIsDone] = useState(true);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedMovie, setSelectedMovie] = useState(null);
 
-    // State variables
-    const [userData, setUserData] = useState([]); // Array of users
-    const [userid, setUserid] = useState(""); // Selected user id
-    const [userNbMovies, setUserNbMovies] = useState(0); // Number of movies watched by the user selected
-    const [userMoviesTitlesBooked, setUserMoviesTitlesBooked] = useState([]); // Array of movies booked by the user selected
-    const [requestMoviesTitleIsDone, setRequestMoviesTitleIsDone] = useState(true); // Boolean to check if the request for movies titles is done
-    const [openDialog, setOpenDialog] = useState(false); // Boolean to open the dialog
-    const [selectedMovie, setSelectedMovie] = useState(null); // Selected movie
-
-    // Animation
     const springs = useSpring({
         from: { number: 0 },
         to: { number: userNbMovies },
         config: { duration: 1000 },
     });
 
-    // Media query
-    const isMobile = useMediaQuery('(max-width:600px)');
+    const isMobile = useMediaQuery("(max-width:600px)");
 
-    // Fetch user details
     const fetchUserDetails = async (userid) => {
-
-        // Fetch user watched count
         try {
             const response = await fetch(`http://localhost:3203/users/${userid}/movies/watched-count`);
             const data = await response.json();
@@ -54,36 +50,23 @@ const UserList = () => {
             console.error("Error fetching user watched count:", error);
         }
 
-        // Fetch user watched movies
         try {
-
-            // set the requestMoviesTitleIsDone to false to show the loading message
             setRequestMoviesTitleIsDone(false);
-
             const response = await fetch(`http://localhost:3203/users/${userid}/movies/titles`);
             const data = await response.json();
             setUserMoviesTitlesBooked(data.titles);
-
-            // set the requestMoviesTitleIsDone to true to show the movies list
             setRequestMoviesTitleIsDone(true);
-
         } catch (error) {
-
-            // set the requestMoviesTitleIsDone to true to show the movies list
             setRequestMoviesTitleIsDone(true);
-
             console.error("Error fetching user watched movies:", error);
         }
     };
 
-    // Fetch movie details
     const fetchMovieDetails = async (movieId) => {
         try {
             const response = await fetch(`http://localhost:3001/graphql`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     query: `query { movie_by_id(id: "${movieId}") { title rating director id } }`,
                 }),
@@ -95,19 +78,16 @@ const UserList = () => {
         }
     };
 
-    // Handle movie click event for the dialog popup
     const handleMovieClick = (movie) => {
         setOpenDialog(true);
         fetchMovieDetails(movie.id);
     };
 
-    // Handle close dialog event for the dialog popup
     const handleCloseDialog = () => {
         setOpenDialog(false);
         setSelectedMovie(null);
     };
 
-    // Fetch users at the beginning
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -123,11 +103,15 @@ const UserList = () => {
     }, []);
 
     return (
-        <div>
-            <Typography variant="h3" gutterBottom sx={{ mt: "3%", mb: "4%" }}>
-                Gestion des utilisateurs
+        <Box sx={{ padding: "2rem", backgroundColor: "#f9f9f9", minHeight: "100vh" }}>
+            <Typography
+                variant="h3"
+                gutterBottom
+                sx={{ textAlign: "center", color: "#333", marginBottom: "2rem" }}
+            >
+                Gestion des Utilisateurs
             </Typography>
-            <FormControl sx={{ width: "85%", mx: "3%" }}>
+            <FormControl fullWidth sx={{ maxWidth: "500px", margin: "0 auto", marginBottom: "2rem" }}>
                 <InputLabel id="select-label">Choisissez une personne</InputLabel>
                 <Select
                     labelId="select-user"
@@ -159,46 +143,50 @@ const UserList = () => {
             {userid && (
                 <Box
                     sx={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-around',
-                        mt: 3,
-                        mb: 4,
+                        display: "flex",
+                        flexDirection: isMobile ? "column" : "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "2rem",
                     }}
                 >
                     <Box
                         sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            mb: isMobile ? 3 : 0,
+                            textAlign: "center",
+                            padding: "1rem",
+                            backgroundColor: "#fff",
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                         }}
                     >
                         <Typography variant="h6" gutterBottom>
                             Nombre de films regardés :
                         </Typography>
-                        <animated.div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
+                        <animated.div style={{ fontSize: "2rem", fontWeight: "bold" }}>
                             {springs.number.to((val) => Math.floor(val))}
                         </animated.div>
                     </Box>
 
-                    <Box sx={{ width: isMobile ? '100%' : '60%' }}>
-                        <Typography variant="h6" gutterBottom align={isMobile ? 'center' : 'left'}>
+                    <Box sx={{ width: isMobile ? "100%" : "60%", marginTop: isMobile ? "2rem" : "0" }}>
+                        <Typography
+                            variant="h6"
+                            gutterBottom
+                            sx={{ textAlign: isMobile ? "center" : "left", marginBottom: "1rem" }}
+                        >
                             Liste des films regardés ou réservés
                         </Typography>
 
                         {userMoviesTitlesBooked.length > 0 ? (
-                            <TableContainer component={Paper} sx={{ width: '100%', mt: 2 }}>
+                            <TableContainer component={Paper}>
                                 <Table>
                                     <TableBody>
                                         {userMoviesTitlesBooked.map((movie) => (
-                                            <TableRow key={movie.id}>
-                                                <TableCell align="center">{movie.title}</TableCell>
-                                                <TableCell align="center">
+                                            <TableRow key={movie.id} hover>
+                                                <TableCell align="left">{movie.title}</TableCell>
+                                                <TableCell align="right">
                                                     <IconButton onClick={() => handleMovieClick(movie)}>
                                                         <InfoIcon />
-
                                                     </IconButton>
                                                 </TableCell>
                                             </TableRow>
@@ -207,21 +195,18 @@ const UserList = () => {
                                 </Table>
                             </TableContainer>
                         ) : requestMoviesTitleIsDone ? (
-                            <Typography variant="h7" align="center" sx={{ mt: 4 }}>
+                            <Typography variant="body1" align="center" sx={{ marginTop: "2rem" }}>
                                 Aucun film réservé.
                             </Typography>
                         ) : (
-                            <Typography variant="h7" align="center" sx={{ mt: 4 }}>
-                                Chargement en cours...
-                            </Typography>
+                            <CircularProgress sx={{ display: "block", margin: "2rem auto" }} />
                         )}
                     </Box>
                 </Box>
             )}
 
-            {/* Popup Dialog */}
             <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth>
-                <DialogTitle>Détails du film</DialogTitle>
+                <DialogTitle>Détails du Film</DialogTitle>
                 <DialogContent>
                     {selectedMovie ? (
                         <Box>
@@ -230,7 +215,7 @@ const UserList = () => {
                             <Typography variant="body2">Directeur : {selectedMovie.director}</Typography>
                         </Box>
                     ) : (
-                        <Typography>Chargement...</Typography>
+                        <CircularProgress sx={{ display: "block", margin: "1rem auto" }} />
                     )}
                 </DialogContent>
                 <DialogActions>
@@ -239,7 +224,7 @@ const UserList = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </div>
+        </Box>
     );
 };
 
